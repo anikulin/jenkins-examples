@@ -1,0 +1,48 @@
+version: '3.7'
+
+volumes:
+  jenkins-data:
+  jenkins-docker-certs:
+
+networks:
+  docker:
+
+services:
+  jenkins:
+    image: jenkins:1.0
+    container_name: jenkins
+    restart: always
+    ports:
+      - 8080:8080
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - /usr/bin/docker:/usr/bin/docker
+      - jenkins-docker-certs:/certs/client:ro
+      - $HOME:/home
+    environment:
+      - DOCKER_HOST=tcp://docker:2376
+      - DOCKER_CERT_PATH=/certs/client
+      - DOCKER_TLS_VERIFY=1
+      - JAVA_OPTS=-Dhudson.footerURL=http://jenkins.local -Dorg.apache.commons.jelly.tags.fmt.timeZone=Europe/Moscow
+      - OPTS=-Djenkins.install.runSetupWizard=false
+
+    networks:
+      - docker
+
+  dind:
+    image: docker:dind
+    privileged: true
+    restart: always
+    networks:
+      docker:
+        aliases: 
+          - docker
+    ports:
+      - 2376:2376
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - jenkins-docker-certs:/certs/client
+      - $HOME:/home
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs
+
